@@ -3,6 +3,7 @@ Custom Non-Commercial Open Source License
 Copyright (c) 2026 Andy78gg
 Permission is hereby granted, free of charge, to any individual obtaining a copy of this software and associated documentation files (the "Software"), to use, study, and view the Software for personal, non-commercial, educational purposes only, subject to the following terms and conditions:
 commercial entertainment. No public distribution or commercial activity is permitted under this license.
+1.Forking this repository is prohibited.
 2. Prohibited Actions
 The following actions are strictly forbidden without explicit written authorization from the original author:
 - Commercial use, selling, reselling, renting, or monetizing any part of the Software, including compiled builds, client resources, and modified versions.
@@ -21,7 +22,7 @@ LICENSE
 Eaglercraft-26.2-client 开源使用许可协议
 Copyright (c) 2026 Andy78gg
 Permission is hereby granted, free of charge, to any individual obtaining a copy of this software and associated documentation files (the "Software"), to use, study and view the Software for personal non-commercial learning purposes only, subject to the following terms:
-
+Forking this repository is prohibited.
 2. 严格禁止行为（重点）
 1. 禁止将本项目代码、编译成品、客户端资源用于商业用途、付费售卖、引流变现、接定制单。
 2. 禁止未经作者授权，私自 Fork、二次修改后重新发布、打包改版客户端、公开分流、冒充原版发布。
