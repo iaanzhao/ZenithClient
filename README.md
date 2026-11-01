@@ -1,4 +1,8 @@
-first chinese client
+# ZenithClient
+
+Eaglercraft 26.2 with WispCraft proxy support.
+
+Hosted at: https://iaanzhao.github.io/ZenithClient/
 
 ## WispCraft
 
