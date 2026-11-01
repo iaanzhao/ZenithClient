@@ -1,0 +1,596 @@
+import { VERSION } from "./consts";
+import { type AuthStore } from ".";
+import { Buffer } from "./buffer";
+import { BytesWriter, Compressor, Decompressor } from "./connection/framer";
+import {
+	bytesToUuid,
+	Decryptor,
+	Encryptor,
+	encryptRSA,
+	loadKey,
+	makeSharedSecret,
+	mchash,
+	offlineUUID,
+} from "./connection/crypto";
+import { handleSkinCape } from "./skins";
+import "./auth";
+import { joinServer } from "./auth";
+
+enum State {
+	Handshaking = 0x00,
+	Status = 0x01,
+	Login = 0x02,
+	Play = 0x03,
+	Configuration = 0x04,
+}
+
+enum PacketType {
+	Clientbound,
+	Serverbound,
+}
+
+// EAG_ prefixed are nonstandard
+enum Serverbound {
+	/* ==HANDSHAKING== */
+	Handshake = 0x00,
+	EAG_ClientVersion = 0x01,
+	EAG_RequestLogin = 0x04,
+	EAG_ProfileData = 0x05,
+	EAG_FinishLogin = 0x08,
+	/* ==STATUS== */
+	StatusRequest = 0x00,
+	PingRequest = 0x01,
+	/* ==LOGIN== */
+	LoginStart = 0x00,
+	EncryptionResponse = 0x01,
+	/* ==PLAY== */
+	PluginMessage = -0x00,
+}
+
+enum Serverbound_1_8 {
+	PluginMessage = 0x17,
+}
+
+enum Serverbound_1_12 {
+	PluginMessage = 0x09,
+}
+
+// Minecraft Java 26.2 (protocol 776) moved custom payloads to the modern
+// packet registry and introduced a post-login configuration phase.
+enum Serverbound_26_2 {
+	PluginMessage = 0x16,
+	ConfigurationPluginMessage = 0x02,
+	LoginAcknowledged = 0x03,
+	FinishConfiguration = 0x03,
+}
+
+enum Clientbound {
+	/* ==HANDSHAKING== */
+	EAG_ServerVersion = 0x02,
+	EAG_AllowLogin = 0x05,
+	EAG_FinishLogin = 0x09,
+	EAG_Disconnect = 0xff,
+	/* ==STATUS== */
+	StatusResponse = 0x00,
+	PongResponse = 0x01,
+	/* ==LOGIN== */
+	Disconnect = 0x0,
+	EncryptionRequest = 0x01,
+	LoginSuccess = 0x02,
+	SetCompression = 0x03,
+	/* ==PLAY== */
+	SetCompressionPlay = 0x46,
+	PluginMessage = -0x00,
+}
+
+enum Clientbound_1_8 {
+	PluginMessage = 0x3f,
+}
+
+enum Clientbound_1_12 {
+	PluginMessage = 0x18,
+}
+
+enum Clientbound_26_2 {
+	PluginMessage = 0x18,
+	ConfigurationPluginMessage = 0x01,
+	FinishConfiguration = 0x03,
+}
+
+class Packet extends Buffer {
+	constructor(packetType: number) {
+		super(new Uint8Array());
+		this.writeVarInt(packetType);
+	}
+}
+
+type ChatSchema = {
+	text: string;
+	color?: string;
+	underlined?: boolean;
+	strikethrough?: boolean;
+	obfuscated?: boolean;
+	bold?: boolean;
+	italic?: boolean;
+	extra?: ChatSchema[];
+};
+
+const colorMap: { [key: string]: string } = {
+	black: "0",
+	dark_blue: "1",
+	dark_green: "2",
+	dark_aqua: "3",
+	dark_red: "4",
+	dark_purple: "5",
+	gold: "6",
+	gray: "7",
+	dark_gray: "8",
+	blue: "9",
+	green: "a",
+	aqua: "b",
+	red: "c",
+	light_purple: "d",
+	yellow: "e",
+	white: "f",
+};
+
+function chatToLegacyString(chat: ChatSchema) {
+	let special = "§";
+	let str = "";
+	if (chat.color) str += special + colorMap[chat.color];
+	if (chat.bold) str += special + "l";
+	if (chat.italic) str += special + "o";
+	if (chat.underlined) str += special + "n";
+
+	str += chat.text;
+	if (chat.extra) {
+		for (let i = 0; i < chat.extra.length; i++) {
+			str += chatToLegacyString(chat.extra[i]);
+		}
+	}
+	return str;
+}
+
+function createEagKick(reason: string): Buffer {
+	let eag = Buffer.new();
+	let str = new TextEncoder().encode(reason);
+	eag.writeBytes([Clientbound.EAG_Disconnect, 0x08]);
+	eag.writeUShort(str.length);
+	eag.extend(new Buffer(str));
+	return eag;
+}
+
+function createProtocolArray(pvn: number): number[] {
+	if (pvn < 256) {
+		return [0, pvn];
+	} else {
+		return [(pvn >> 8) & 0xff, pvn & 0xff];
+	}
+}
+
+function uuidToBytes(uuid: string): Uint8Array {
+	const hex = uuid.replace(/-/g, "");
+	if (!/^[0-9a-f]{32}$/i.test(hex)) {
+		throw new Error("Invalid Minecraft profile UUID");
+	}
+	const bytes = new Uint8Array(16);
+	for (let i = 0; i < bytes.length; i++) {
+		bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+	}
+	return bytes;
+}
+
+function getVersionPacketId(
+	protocol: number,
+	type: PacketType,
+	packet: string
+): number {
+	if (type == PacketType.Serverbound) {
+		if (protocol == 47) {
+			return Serverbound_1_8[packet];
+		} else if (protocol == 340) {
+			return Serverbound_1_12[packet];
+		} else if (protocol == 776) {
+			return Serverbound_26_2[packet];
+		} else {
+			return Serverbound[packet];
+		}
+	} else {
+		if (protocol == 47) {
+			return Clientbound_1_8[packet];
+		} else if (protocol == 340) {
+			return Clientbound_1_12[packet];
+		} else if (protocol == 776) {
+			return Clientbound_26_2[packet];
+		} else {
+			return Clientbound[packet];
+		}
+	}
+}
+
+function getConfigurationPacketId(protocol: number, type: PacketType): number {
+	if (protocol !== 776) return -1;
+	return type == PacketType.Serverbound
+		? Serverbound_26_2.ConfigurationPluginMessage
+		: Clientbound_26_2.ConfigurationPluginMessage;
+}
+
+function getPacketChannel(packet: Buffer): string | null {
+	try {
+		const copy = packet.copy();
+		copy.readVarInt();
+		return copy.readString();
+	} catch {
+		// Unknown packets can share an id across protocol versions. Never consume
+		// or drop a packet just because its payload is not a channel string.
+		return null;
+	}
+}
+
+export class EaglerProxy {
+	loggedIn: boolean = false;
+	handshook: boolean = false;
+	decompressor = new Decompressor();
+	compressor = new Compressor();
+	decryptor = new Decryptor();
+	encryptor = new Encryptor();
+
+	state: State = State.Handshaking;
+
+	net: BytesWriter;
+	eagler: WritableStreamDefaultWriter<Buffer | string>;
+
+	offlineUsername: string = "";
+	offlineUuid: string = "";
+	isPremium: boolean = false;
+
+	protocol: number = -1;
+
+	constructor(
+		eaglerOut: BytesWriter,
+		epoxyOut: BytesWriter,
+		public serverAddress: string,
+		public serverPort: number,
+		public authStore: AuthStore
+	) {
+		this.net = epoxyOut;
+		this.eagler = eaglerOut;
+	}
+
+	// consumes packets from eagler, sends them to the upstream server
+	async eaglerRead(packet: Buffer) {
+		packet = new Buffer(packet.inner); // proto bug
+		switch (this.state) {
+			case State.Handshaking:
+				switch (packet.readVarInt()) {
+					case Serverbound.EAG_ClientVersion:
+						packet.readUByte();
+						const l = packet.readUShort();
+						for (let i = 0; i < l; i++) {
+							packet.readUShort();
+						}
+						packet.readUShort();
+						this.protocol = packet.readUShort();
+						const fakever = new Packet(Clientbound.EAG_ServerVersion);
+						{
+							const brand = new TextEncoder().encode("Wispcraft");
+							fakever.writeBytes([
+								0,
+								3,
+								...createProtocolArray(this.protocol),
+								brand.length,
+							]);
+							fakever.extend(new Buffer(brand));
+							fakever.writeBytes([brand.length]);
+							fakever.extend(new Buffer(brand));
+							fakever.writeBytes([0, 0, 0]);
+						}
+						this.eagler.write(fakever);
+						return;
+					case Serverbound.EAG_RequestLogin:
+						let username = packet.readString();
+						this.offlineUsername = username;
+
+						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
+						if (this.authStore.user) {
+							fakelogin.writeString(this.authStore.user.name);
+							fakelogin.writeBytes(
+								Array.from(uuidToBytes(this.authStore.user.id))
+							);
+						} else {
+							fakelogin.writeString(this.offlineUsername);
+							fakelogin.writeBytes(offlineUUID(this.offlineUsername));
+						}
+						this.eagler.write(fakelogin);
+						return;
+					case Serverbound.EAG_FinishLogin:
+						// this says finish login but it only finishes the handshake stage since eagler
+						// now send the real login packets
+						this.state = State.Login;
+
+						let handshake = new Packet(Serverbound.Handshake);
+						handshake.writeVarInt(this.protocol);
+						handshake.writeString(this.serverAddress);
+						handshake.writeUShort(this.serverPort);
+						handshake.writeVarInt(State.Login);
+						this.net.write(handshake);
+
+						let loginstart = new Packet(Serverbound.LoginStart);
+						if (this.authStore.user) {
+							loginstart.writeString(this.authStore.user.name);
+						} else {
+							loginstart.writeString(this.offlineUsername);
+						}
+						if (this.protocol == 776) {
+							loginstart.writeBytes(
+								Array.from(
+									this.authStore.user
+										? uuidToBytes(this.authStore.user.id)
+										: offlineUUID(this.offlineUsername)
+								)
+							);
+						}
+						this.net.write(loginstart);
+						break;
+				}
+				break;
+			case State.Status:
+				// eagler does not send status packets
+				break;
+			case State.Login:
+			case State.Configuration:
+			case State.Play:
+				let pk = packet.readVarInt(false)!;
+				const customPayloadId = this.state == State.Configuration
+					? getConfigurationPacketId(this.protocol, PacketType.Serverbound)
+					: getVersionPacketId(
+							this.protocol,
+							PacketType.Serverbound,
+							"PluginMessage"
+						);
+				if (pk == customPayloadId) {
+					const tag = getPacketChannel(packet);
+					if (tag?.startsWith("EAG|")) {
+						if (tag == "EAG|Skins-1.8" || tag == "EAG|Capes-1.8") {
+							const copy = packet.copy();
+							copy.readVarInt();
+						copy.readString();
+						const isCape = tag[4] == "C";
+						const data = copy.take(copy.length);
+						handleSkinCape(isCape, data).then((buf) => {
+							if (buf.length == 0) return;
+							const resp = new Packet(
+								getVersionPacketId(
+									this.protocol,
+									PacketType.Clientbound,
+									"PluginMessage"
+								)
+							);
+							resp.writeString(tag);
+							resp.extend(buf);
+							this.eagler.write(resp);
+						});
+						}
+						return;
+					}
+				}
+				if (
+					this.protocol == 776 &&
+					this.state == State.Configuration &&
+					pk == Serverbound_26_2.FinishConfiguration
+				) {
+					this.state = State.Play;
+				}
+				this.net.write(packet);
+				break;
+		}
+	}
+
+	// consumes packets from the network, sends them to eagler
+	async epoxyRead(packet: Buffer) {
+		packet = new Buffer(packet.inner); // proto bug
+		let pk;
+		switch (this.state) {
+			case State.Handshaking:
+				// there are no clientbound packets in the handshaking state
+				break;
+			case State.Status:
+				pk = packet.readVarInt();
+				switch (pk) {
+					case Clientbound.StatusResponse:
+						let json = packet.readString();
+						let body = JSON.parse(json);
+						let response: any = {
+							name: "Java Server",
+							brand: "mercuryworkshop",
+							vers: "wispcraft/" + VERSION,
+							cracked: true,
+							time: Date.now(),
+							uuid: bytesToUuid(offlineUUID("wispcraft")),
+							type: "motd",
+							data: {
+								cache: false,
+								icon: false,
+								online: body.players.online,
+								max: body.players.max,
+								players: [body.version.name, "\u00A77\u00A7o(Wispcraft)"],
+							},
+						};
+
+						if (body.description)
+							if (typeof body.description == "string")
+								response.data.motd = [body.description];
+							else if (body.description.extra) {
+								response.data.motd = [chatToLegacyString(body.description)];
+							} else response.data.motd = [body.description.text];
+
+						if (body.favicon) {
+							response.data.icon = true;
+						}
+
+						this.eagler.write(JSON.stringify(response));
+
+						if (body.favicon) {
+							let image = await createImageBitmap(
+								await (await fetch(body.favicon)).blob()
+							);
+							let canvas = new OffscreenCanvas(image.width, image.height);
+							let ctx = canvas.getContext("2d")!;
+							ctx.drawImage(image, 0, 0);
+							let pixels = ctx.getImageData(
+								0,
+								0,
+								canvas.width,
+								canvas.height
+							).data;
+							this.eagler.write(new Buffer(new Uint8Array(pixels)));
+						}
+						break;
+					case Clientbound.PongResponse:
+						let time = packet.readLong();
+						break;
+					default:
+						console.error("Unhandled status packet: " + pk);
+				}
+				break;
+			case State.Login:
+				pk = packet.readVarInt();
+				switch (pk) {
+					case Clientbound.Disconnect:
+						{
+							let reason = packet.readString();
+							console.error("Disconnect during login: " + reason);
+							let legacyreason = chatToLegacyString(JSON.parse(reason));
+							let eag = createEagKick(legacyreason);
+							this.eagler.write(eag);
+						}
+						break;
+					case Clientbound.LoginSuccess:
+						if (this.protocol == 776) {
+							// 26.2 LoginFinished starts with a binary UUID and profile data.
+							// The proxy does not use the upstream UUID, so leave that payload
+							// untouched instead of parsing it as the legacy string form.
+							this.state = State.Configuration;
+							this.net.write(new Packet(Serverbound_26_2.LoginAcknowledged));
+						} else {
+							this.offlineUuid = packet.readString();
+							this.state = State.Play;
+						}
+						let eag = new Packet(Clientbound.EAG_FinishLogin);
+						this.eagler.write(eag);
+						break;
+					case Clientbound.SetCompression:
+						let threshold = packet.readVarInt()!;
+						this.decompressor.compressionThresh = threshold;
+						this.compressor.compressionThresh = threshold;
+						break;
+					case Clientbound.EncryptionRequest:
+						{
+							this.isPremium = true;
+
+							if (this.authStore.user == null) {
+								const reason =
+									"This server requires authentication, but you are not logged in!\n Connect to Wispcraft Settings to log in with Microsoft";
+								let eag = createEagKick(reason);
+								this.eagler.write(eag);
+								return;
+							}
+
+							let serverid = packet.readString();
+							let publicKey = packet.readVariableData();
+							let verifyToken = packet.readVariableData();
+
+							let sharedSecret = makeSharedSecret();
+							let digest = await mchash(
+								new Uint8Array([
+									...new TextEncoder().encode(serverid),
+									...sharedSecret,
+									...publicKey.inner,
+								])
+							);
+
+							const [modulus, exponent] = await loadKey(publicKey.inner);
+							let encrypedSecret = encryptRSA(sharedSecret, modulus, exponent);
+							let encryptedChallenge = encryptRSA(
+								verifyToken.inner,
+								modulus,
+								exponent
+							);
+							await joinServer(
+								this.authStore.yggToken,
+								digest,
+								this.authStore.user.id
+							);
+
+							let response = new Packet(Serverbound.EncryptionResponse);
+							response.writeVariableData(new Buffer(encrypedSecret));
+							response.writeVariableData(new Buffer(encryptedChallenge));
+							this.net.write(response).then(() => {
+								this.encryptor.seed(sharedSecret);
+								this.decryptor.seed(sharedSecret);
+							});
+						}
+						break;
+					default:
+						// Forward login plugin and cookie packets so newer vanilla servers
+						// can complete their login negotiation with the Eagler client.
+						this.eagler.write(packet);
+				}
+				break;
+			case State.Configuration:
+				pk = packet.readVarInt();
+				if (
+					pk == Clientbound_26_2.ConfigurationPluginMessage &&
+					getPacketChannel(packet)?.startsWith("EAG|")
+				) {
+					break;
+				}
+				this.eagler.write(packet);
+				break;
+			case State.Play:
+				pk = packet.readVarInt(false)!;
+				switch (pk) {
+					case Clientbound.SetCompressionPlay:
+						if (this.protocol == 47) {
+							packet.readVarInt();
+							let threshold = packet.readVarInt();
+							this.decompressor.compressionThresh = threshold;
+							this.compressor.compressionThresh = threshold;
+							break;
+						}
+						this.eagler.write(packet);
+						break;
+					case getVersionPacketId(
+						this.protocol,
+						PacketType.Clientbound,
+						"PluginMessage"
+					):
+						if (getPacketChannel(packet)?.startsWith("EAG|")) break;
+						this.eagler.write(packet);
+						break;
+					default:
+						// send rest of packet to eagler
+						this.eagler.write(packet);
+				}
+		}
+	}
+
+	// pings remote server, sends json to eagler
+	async ping() {
+		let handshake = new Packet(Serverbound.Handshake);
+		handshake.writeVarInt(47);
+		handshake.writeString(this.serverAddress);
+		handshake.writeUShort(this.serverPort);
+		handshake.writeVarInt(State.Status);
+		this.net.write(handshake);
+
+		let statusRequest = new Packet(Serverbound.StatusRequest);
+		this.net.write(statusRequest);
+
+		let pingRequest = new Packet(Serverbound.PingRequest);
+		pingRequest.writeLong(Date.now());
+		this.net.write(pingRequest);
+
+		this.state = State.Status;
+	}
+}

@@ -4,6 +4,8 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
 	<title>Eaglercraft 26.2 u1</title>
+	<!-- WispCraft must load before eaglercraftXOpts and the game bootstrap. -->
+	<script src="wispcraft.bundle.js"></script>
 	<link rel="icon" type="image/png" href="favicon.png" />
 		<link rel="preload" href="classes.wasm?v=fd7e60bb289df3c6" as="fetch" type="application/wasm" crossorigin="anonymous" />
 		<link rel="preload" href="mesh-worker.wasm?v=fd7e60bb289df3c6" as="fetch" type="application/wasm" crossorigin="anonymous" />
@@ -419,7 +421,7 @@
 			// Use data URLs instead of the blob-origin probe.
 			disableBlobURLs: true,
 			// ?singlethread disables all workers; ?nomesh disables mesh workers.
-			singleThreadMode: true,
+			singleThreadMode: window.location.search.indexOf("singlethread") >= 0,
 				serverWorker: window.location.search.indexOf("singlethread") < 0,
 				meshWorkers: window.location.search.indexOf("singlethread") < 0
 					&& window.location.search.indexOf("nomesh") < 0,
