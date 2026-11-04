@@ -23,7 +23,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir public
-          cp index.html *.js *.wasm *.epk favicon.png .nojekyll public/
+          cp index.html 404.html *.js *.wasm *.epk favicon.png .nojekyll public/
           cp -R lang public/lang
       - uses: actions/upload-pages-artifact@v3
         with:
