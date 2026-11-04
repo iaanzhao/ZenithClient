@@ -4,6 +4,11 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
 	<title>ZenithClient</title>
+	<script>
+		// Keep game asset URLs rooted correctly when a room code is part of the URL path.
+		document.write('<base href="' + (location.hostname === "iaanzhao.github.io" ? "/ZenithClient/" : "/") + '">');
+	</script>
+	<script src="rooms.js"></script>
 	<!-- WispCraft must load before eaglercraftXOpts and the game bootstrap. -->
 	<script src="wispcraft.bundle.js"></script>
 	<link rel="icon" type="image/png" href="favicon.png" />
@@ -16,6 +21,35 @@
 		#loading_screen {
 			transition: opacity 180ms linear;
 		}
+		#room_gate {
+			position: fixed;
+			inset: 0;
+			z-index: 2147483647;
+			display: none;
+			align-items: center;
+			justify-content: center;
+			padding: 24px;
+			box-sizing: border-box;
+			background: radial-gradient(ellipse at 50% 42%, rgba(42, 78, 144, .25), transparent 52%), linear-gradient(145deg, #080d18, #0a1020 52%, #080b14);
+			color: #f4f7ff;
+			font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+		}
+		#room_gate .gate-card {
+			width: min(100%, 460px);
+			padding: 36px;
+			border: 1px solid rgba(158, 183, 231, .2);
+			border-radius: 20px;
+			background: linear-gradient(155deg, rgba(18, 27, 47, .97), rgba(11, 17, 31, .97));
+			box-shadow: 0 28px 90px rgba(0, 0, 0, .42), inset 0 1px rgba(255, 255, 255, .045);
+		}
+		#room_gate h1 { margin: 0; font-size: 24px; letter-spacing: .03em; }
+		#room_gate .gate-copy { margin: 10px 0 24px; color: #aab7cf; font-size: 14px; line-height: 1.5; }
+		#room_gate label { display: block; margin: 16px 0 7px; color: #aab7cf; font-size: 12px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+		#room_gate input { width: 100%; padding: 12px 14px; box-sizing: border-box; border: 1px solid rgba(158, 183, 231, .3); border-radius: 10px; background: #080d18; color: #f4f7ff; font: 15px ui-monospace, "Cascadia Mono", monospace; outline: none; }
+		#room_gate input:focus { border-color: #6ea7ff; box-shadow: 0 0 0 3px rgba(79, 124, 255, .2); }
+		#room_gate button { width: 100%; margin-top: 22px; padding: 12px; border: 1px solid rgba(147, 194, 255, .55); border-radius: 10px; background: linear-gradient(100deg, #4f7cff, #61b7f4); color: #071326; font: 700 15px ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+		#room_gate button:disabled { opacity: .65; cursor: wait; }
+		#room_gate_error { min-height: 20px; margin: 14px 0 0; color: #ff9b9b; font-size: 13px; }
 		#loading_screen.is-ready {
 			opacity: 0;
 			pointer-events: none;
@@ -566,6 +600,7 @@
 	<script type="module">
 		(async () => {
 			try {
+				await window.__zenithGate;
 				// Compile once so worker instances can reuse the module.
 				let tv;
 				try {
@@ -680,6 +715,18 @@
 	</script>
 </head>
 <body style="position:fixed;inset:0;margin:0;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;background-color:black;">
+	<div id="room_gate" role="dialog" aria-modal="true" aria-labelledby="room_gate_title">
+		<form class="gate-card" id="room_gate_form" autocomplete="off">
+			<h1 id="room_gate_title">ZenithClient Access</h1>
+			<p class="gate-copy">Enter your room code and password to continue.</p>
+			<label for="room_code">Room code</label>
+			<input id="room_code" name="room" inputmode="numeric" autocomplete="off" required />
+			<label for="room_password">Password</label>
+			<input id="room_password" name="password" type="password" autocomplete="new-password" required />
+			<button id="room_gate_submit" type="submit">Enter client</button>
+			<p id="room_gate_error" role="alert" aria-live="polite"></p>
+		</form>
+	</div>
 	<div id="loading_screen" style="margin:0px;position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;background-color:white;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;">
 			<div class="zenith-loader">
 				<div class="zenith-lockup" aria-label="ZenithClient">
@@ -701,5 +748,54 @@
 		<div class="phone" aria-hidden="true"></div>
 		<div><strong>Rotate your device</strong>Eaglercraft requires landscape mode on phones.</div>
 	</div>
+	<script>
+		window.__zenithGate = new Promise(function (resolve) {
+			var parts = location.pathname.split("/").filter(Boolean);
+			var urlCode = location.hostname === "iaanzhao.github.io"
+				? (parts.length > 1 && parts[0] === "ZenithClient" ? parts[1] : "")
+				: (parts.length ? parts[parts.length - 1] : "");
+			var params = new URLSearchParams(location.search);
+			if (params.get("room")) urlCode = params.get("room");
+			function normalize(value) { return ("" + value).trim().replace(/\/+$/, ""); }
+			var knownCode = normalize(urlCode);
+			var gate = document.getElementById("room_gate");
+			var form = document.getElementById("room_gate_form");
+			var codeInput = document.getElementById("room_code");
+			var passInput = document.getElementById("room_password");
+			var submit = document.getElementById("room_gate_submit");
+			var errorBox = document.getElementById("room_gate_error");
+			if (knownCode) codeInput.value = knownCode;
+			function fail(message) {
+				errorBox.textContent = message;
+				submit.disabled = false;
+				passInput.focus();
+				passInput.select();
+			}
+			form.addEventListener("submit", function (event) {
+				event.preventDefault();
+				if (submit.disabled) return;
+				submit.disabled = true;
+				errorBox.textContent = "";
+				var code = normalize(codeInput.value);
+				var room = (window.ZENITH_ROOMS || []).find(function (item) { return item.CODE === code; });
+				if (!code) { fail("Enter a room code."); return; }
+				if (!room) { fail("Unknown room code."); return; }
+				if (!passInput.value) { fail("Enter the room password."); return; }
+				if (passInput.value !== room.PSWD) { fail("Incorrect password for room " + code + "."); return; }
+				try { sessionStorage.setItem("zenith_room", code); } catch (e) {}
+				gate.style.display = "none";
+				resolve({ code: code });
+			});
+			var previous = null;
+			try { previous = sessionStorage.getItem("zenith_room"); } catch (e) {}
+			if (previous && knownCode && previous === knownCode) {
+				gate.style.display = "none";
+				resolve({ code: previous });
+				return;
+			}
+			gate.style.display = "flex";
+			(knownCode ? passInput : codeInput).focus();
+		});
+	</script>
 </body>
 </html>

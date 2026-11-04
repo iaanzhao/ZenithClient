@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Opening ZenithClient room…</title>
+<script>
+	const segments = location.pathname.split("/").filter(Boolean);
+	const repo = segments.indexOf("ZenithClient");
+	const room = repo >= 0 ? segments[repo + 1] : "";
+	const params = new URLSearchParams(location.search);
+	if (room && !params.has("room")) params.set("room", room);
+	location.replace("/ZenithClient/" + (params.size ? "?" + params.toString() : ""));
+</script>
