@@ -512,7 +512,9 @@
 			localesURI: "lang/",
 			worldsDB: "worlds",
 			resourcePacksDB: "resourcePacks",
-			crashOnUncaughtExceptions: true,
+			// A blocked/closed WebSocket can leave a late Wisp WASM callback.
+			// Keep that network failure from terminating the whole game runtime.
+			crashOnUncaughtExceptions: false,
 			enableEPKVersionCheck: false,
 			allowBootMenu: false,
 			inputSelfTest: false,
