@@ -30,26 +30,35 @@
 			justify-content: center;
 			padding: 24px;
 			box-sizing: border-box;
-			background: radial-gradient(ellipse at 50% 42%, rgba(42, 78, 144, .25), transparent 52%), linear-gradient(145deg, #080d18, #0a1020 52%, #080b14);
+			background: radial-gradient(ellipse at 50% 42%, rgba(42, 78, 144, .3), transparent 52%), linear-gradient(145deg, #080d18, #0a1020 52%, #080b14);
 			color: #f4f7ff;
 			font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 		}
 		#room_gate .gate-card {
 			width: min(100%, 460px);
-			padding: 36px;
-			border: 1px solid rgba(158, 183, 231, .2);
-			border-radius: 20px;
+			padding: 38px 38px 28px;
+			border: 1px solid rgba(158, 183, 231, .16);
+			border-radius: 22px;
 			background: linear-gradient(155deg, rgba(18, 27, 47, .97), rgba(11, 17, 31, .97));
 			box-shadow: 0 28px 90px rgba(0, 0, 0, .42), inset 0 1px rgba(255, 255, 255, .045);
 		}
-		#room_gate h1 { margin: 0; font-size: 24px; letter-spacing: .03em; }
-		#room_gate .gate-copy { margin: 10px 0 24px; color: #aab7cf; font-size: 14px; line-height: 1.5; }
-		#room_gate label { display: block; margin: 16px 0 7px; color: #aab7cf; font-size: 12px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
-		#room_gate input { width: 100%; padding: 12px 14px; box-sizing: border-box; border: 1px solid rgba(158, 183, 231, .3); border-radius: 10px; background: #080d18; color: #f4f7ff; font: 15px ui-monospace, "Cascadia Mono", monospace; outline: none; }
-		#room_gate input:focus { border-color: #6ea7ff; box-shadow: 0 0 0 3px rgba(79, 124, 255, .2); }
-		#room_gate button { width: 100%; margin-top: 22px; padding: 12px; border: 1px solid rgba(147, 194, 255, .55); border-radius: 10px; background: linear-gradient(100deg, #4f7cff, #61b7f4); color: #071326; font: 700 15px ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+		#room_gate .gate-heading { margin: 30px 0 20px; }
+		#room_gate h1 { margin: 0; font-size: 25px; letter-spacing: -.025em; }
+		#room_gate .gate-copy { margin: 8px 0 0; color: #92a2be; font-size: 14px; line-height: 1.55; }
+		#room_gate label { display: block; margin: 17px 0 7px; color: #92a2be; font-size: 11px; font-weight: 650; letter-spacing: .14em; text-transform: uppercase; }
+		#room_gate input { width: 100%; padding: 13px 14px; box-sizing: border-box; border: 1px solid rgba(158, 183, 231, .3); border-radius: 12px; background: rgba(8, 13, 24, .8); color: #f4f7ff; font: 15px ui-monospace, "Cascadia Mono", monospace; outline: none; transition: border-color 140ms ease, box-shadow 140ms ease; }
+		#room_gate input:focus { border-color: #74d7ff; box-shadow: 0 0 0 3px rgba(116, 215, 255, .15); }
+		#room_gate button { width: 100%; margin-top: 22px; padding: 13px; border: 0; border-radius: 12px; background: linear-gradient(90deg, #4f7cff, #74d7ff); color: #071326; font: 700 15px ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: filter 140ms ease, transform 140ms ease; }
+		#room_gate button:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
 		#room_gate button:disabled { opacity: .65; cursor: wait; }
-		#room_gate_error { min-height: 20px; margin: 14px 0 0; color: #ff9b9b; font-size: 13px; }
+		#room_gate_error { min-height: 18px; margin: 12px 0 0; color: #ff8a8a; font-size: 13px; }
+		#room_gate .gate-note { margin: 18px 0 0; color: #6f7f9c; font-size: 12px; line-height: 1.5; }
+		@media (max-width: 520px) {
+			#room_gate { padding: 18px; }
+			#room_gate .gate-card { padding: 30px 25px 22px; border-radius: 18px; }
+			#room_gate .zenith-mark { width: 50px; height: 50px; flex-basis: 50px; border-radius: 15px; font-size: 30px; }
+			#room_gate .zenith-name { font-size: 18px; }
+		}
 		#loading_screen.is-ready {
 			opacity: 0;
 			pointer-events: none;
@@ -717,14 +726,24 @@
 <body style="position:fixed;inset:0;margin:0;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;background-color:black;">
 	<div id="room_gate" role="dialog" aria-modal="true" aria-labelledby="room_gate_title">
 		<form class="gate-card" id="room_gate_form" autocomplete="off">
-			<h1 id="room_gate_title">ZenithClient Access</h1>
-			<p class="gate-copy">Enter your room code and password to continue.</p>
+			<div class="zenith-lockup" aria-label="ZenithClient">
+				<div class="zenith-mark" aria-hidden="true">Z</div>
+				<div>
+					<div class="zenith-name">ZENITHCLIENT</div>
+					<div class="zenith-edition">ROOM ACCESS</div>
+				</div>
+			</div>
+			<div class="gate-heading">
+				<h1 id="room_gate_title">Enter your room</h1>
+				<p class="gate-copy">Use your room code and password to continue.</p>
+			</div>
 			<label for="room_code">Room code</label>
-			<input id="room_code" name="room" inputmode="numeric" autocomplete="off" required />
+			<input id="room_code" name="room" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="e.g. 99" required />
 			<label for="room_password">Password</label>
-			<input id="room_password" name="password" type="password" autocomplete="new-password" required />
-			<button id="room_gate_submit" type="submit">Enter client</button>
+\t		<input id="room_password" name="password" type="password" autocomplete="new-password" placeholder="Room password" required />
+\t		<button id="room_gate_submit" type="submit">Enter room</button>
 			<p id="room_gate_error" role="alert" aria-live="polite"></p>
+			<p class="gate-note">Your room code may already be included in the link you opened.</p>
 		</form>
 	</div>
 	<div id="loading_screen" style="margin:0px;position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;background-color:white;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;">
