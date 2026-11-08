@@ -7,5 +7,5 @@
 	const room = repo >= 0 ? segments[repo + 1] : "";
 	const params = new URLSearchParams(location.search);
 	if (room && !params.has("room")) params.set("room", room);
-	location.replace("/ZenithClient/" + (params.size ? "?" + params.toString() : ""));
+	location.replace("/ZenithClient/client-26.2.html" + (params.size ? "?" + params.toString() : ""));
 </script>
