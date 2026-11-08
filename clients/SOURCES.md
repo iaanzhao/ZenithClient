@@ -15,3 +15,7 @@ Provider build files are served from the matching version folders on Zenith. The
 | `beta-1.6.4/`, `beta-1.5.01/`, `alpha-1.0.6-03/` | Classic community builds | [EymenWSMC launcher](https://eymenwsmc.github.io/playopspt.github.io/) |
 
 The official launcher has a 26.3 online entry but did not provide a standalone download in its download catalog when this hub was assembled. The 26.3 card therefore opens the provider's page. Zenith 26.2 remains a separate build with WispCraft integration.
+
+## Wisp integration
+
+The bundled WispCraft connector is loaded by every locally hosted client page (including the classic builds). Its Java protocol adapter currently supports 1.7.10, 1.8.x, 1.12.2, 1.13.1, 1.14.4, 1.20.6, and 26.2. The Beta, Alpha, and 1.5.2 builds load the connector UI and settings hook, but their legacy wire protocols are not supported by this Java-server adapter. Provider-hosted versions such as 26.3 are not modified by Zenith.

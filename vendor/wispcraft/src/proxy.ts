@@ -51,8 +51,28 @@ enum Serverbound_1_8 {
 	PluginMessage = 0x17,
 }
 
+// 1.7.10 uses protocol 5 and the same custom payload packet IDs as 1.8.
+enum Serverbound_1_7_10 {
+	PluginMessage = 0x17,
+}
+
 enum Serverbound_1_12 {
 	PluginMessage = 0x09,
+}
+
+enum Serverbound_1_13 {
+	PluginMessage = 0x0a,
+}
+
+enum Serverbound_1_14 {
+	PluginMessage = 0x0b,
+}
+
+enum Serverbound_1_20 {
+	PluginMessage = 0x12,
+	ConfigurationPluginMessage = 0x02,
+	LoginAcknowledged = 0x03,
+	FinishConfiguration = 0x03,
 }
 
 // Minecraft Java 26.2 (protocol 776) moved custom payloads to the modern
@@ -87,8 +107,26 @@ enum Clientbound_1_8 {
 	PluginMessage = 0x3f,
 }
 
+enum Clientbound_1_7_10 {
+	PluginMessage = 0x3f,
+}
+
 enum Clientbound_1_12 {
 	PluginMessage = 0x18,
+}
+
+enum Clientbound_1_13 {
+	PluginMessage = 0x19,
+}
+
+enum Clientbound_1_14 {
+	PluginMessage = 0x18,
+}
+
+enum Clientbound_1_20 {
+	PluginMessage = 0x19,
+	ConfigurationPluginMessage = 0x01,
+	FinishConfiguration = 0x03,
 }
 
 enum Clientbound_26_2 {
@@ -186,20 +224,36 @@ function getVersionPacketId(
 	packet: string
 ): number {
 	if (type == PacketType.Serverbound) {
-		if (protocol == 47) {
+		if (protocol == 5) {
+			return Serverbound_1_7_10[packet];
+		} else if (protocol == 47) {
 			return Serverbound_1_8[packet];
 		} else if (protocol == 340) {
 			return Serverbound_1_12[packet];
+		} else if (protocol == 401) {
+			return Serverbound_1_13[packet];
+		} else if (protocol == 498) {
+			return Serverbound_1_14[packet];
+		} else if (protocol == 766) {
+			return Serverbound_1_20[packet];
 		} else if (protocol == 776) {
 			return Serverbound_26_2[packet];
 		} else {
 			return Serverbound[packet];
 		}
 	} else {
-		if (protocol == 47) {
+		if (protocol == 5) {
+			return Clientbound_1_7_10[packet];
+		} else if (protocol == 47) {
 			return Clientbound_1_8[packet];
 		} else if (protocol == 340) {
 			return Clientbound_1_12[packet];
+		} else if (protocol == 401) {
+			return Clientbound_1_13[packet];
+		} else if (protocol == 498) {
+			return Clientbound_1_14[packet];
+		} else if (protocol == 766) {
+			return Clientbound_1_20[packet];
 		} else if (protocol == 776) {
 			return Clientbound_26_2[packet];
 		} else {
@@ -209,10 +263,16 @@ function getVersionPacketId(
 }
 
 function getConfigurationPacketId(protocol: number, type: PacketType): number {
-	if (protocol !== 776) return -1;
-	return type == PacketType.Serverbound
-		? Serverbound_26_2.ConfigurationPluginMessage
-		: Clientbound_26_2.ConfigurationPluginMessage;
+	if (protocol == 766) {
+		return type == PacketType.Serverbound
+			? Serverbound_1_20.ConfigurationPluginMessage
+			: Clientbound_1_20.ConfigurationPluginMessage;
+	} else if (protocol == 776) {
+		return type == PacketType.Serverbound
+			? Serverbound_26_2.ConfigurationPluginMessage
+			: Clientbound_26_2.ConfigurationPluginMessage;
+	}
+	return -1;
 }
 
 function getPacketChannel(packet: Buffer): string | null {
@@ -321,7 +381,7 @@ export class EaglerProxy {
 						} else {
 							loginstart.writeString(this.offlineUsername);
 						}
-						if (this.protocol == 776) {
+					if (this.protocol == 766 || this.protocol == 776) {
 							loginstart.writeBytes(
 								Array.from(
 									this.authStore.user
@@ -375,7 +435,7 @@ export class EaglerProxy {
 					}
 				}
 				if (
-					this.protocol == 776 &&
+					(this.protocol == 766 || this.protocol == 776) &&
 					this.state == State.Configuration &&
 					pk == Serverbound_26_2.FinishConfiguration
 				) {
@@ -466,7 +526,7 @@ export class EaglerProxy {
 						}
 						break;
 					case Clientbound.LoginSuccess:
-						if (this.protocol == 776) {
+						if (this.protocol == 766 || this.protocol == 776) {
 							// 26.2 LoginFinished starts with a binary UUID and profile data.
 							// The proxy does not use the upstream UUID, so leave that payload
 							// untouched instead of parsing it as the legacy string form.
@@ -540,7 +600,7 @@ export class EaglerProxy {
 			case State.Configuration:
 				pk = packet.readVarInt();
 				if (
-					pk == Clientbound_26_2.ConfigurationPluginMessage &&
+					pk == getConfigurationPacketId(this.protocol, PacketType.Clientbound) &&
 					getPacketChannel(packet)?.startsWith("EAG|")
 				) {
 					break;

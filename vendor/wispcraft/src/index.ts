@@ -104,10 +104,27 @@ let eagoptions: EaglerXOptions;
 // append settings to the server list
 const settings = { addr: "settings://", name: "Wispcraft Settings" };
 let relayId = Math.floor(Math.random() * 3);
-Object.defineProperty(window, "eaglercraftXOpts", {
+function addSettingsServer(options: EaglerXOptions): EaglerXOptions {
+	if (!options || typeof options !== "object") return options;
+	if (Array.isArray(options.servers)) {
+		if (!options.servers.some((server: any) => server?.addr === settings.addr)) {
+			options.servers.unshift(settings);
+		}
+	} else {
+		options.servers = [settings];
+	}
+	return options;
+}
+
+function installOptionsHook(property: string) {
+	let options: EaglerXOptions;
+	Object.defineProperty(window, property, {
 	get() {
-		if (eagoptions) {
-			return eagoptions;
+		if (options) {
+			return options;
+		}
+		if (property === "eaglercraftOpts") {
+			return undefined;
 		}
 		return {
 			container: "game_frame",
@@ -132,14 +149,14 @@ Object.defineProperty(window, "eaglercraftXOpts", {
 		};
 	},
 	set(v) {
-		eagoptions = v;
-		if (eagoptions?.servers) {
-			eagoptions.servers.unshift(settings);
-		} else {
-			eagoptions.servers = [settings];
-		}
+		options = addSettingsServer(v);
 	},
 });
+}
+
+installOptionsHook("eaglercraftXOpts");
+// Eaglercraft 1.5.2 uses the legacy global name.
+installOptionsHook("eaglercraftOpts");
 
 initWisp(wispUrl);
 
