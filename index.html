@@ -81,7 +81,7 @@
       <section id="versions" aria-labelledby="versions-title">
         <div class="section-head"><div><h2 id="versions-title">Available versions</h2><p>Pick a client version to launch.</p></div></div>
         <div class="grid" id="version-grid"></div>
-        <div class="notes"><strong>About external builds:</strong> versions hosted elsewhere open in a new tab and use that provider’s client settings. Zenith’s WispCraft integration is available in the Zenith 26.2 build.</div>
+        <div class="notes"><strong>About external builds:</strong> they open as full-page clients from their providers, without an iframe. Those clients remain hosted on their own sites; Zenith’s WispCraft integration is available in the Zenith 26.2 build.</div>
       </section>
       <section id="custom" aria-labelledby="custom-title">
         <div class="section-head"><div><h2 id="custom-title">Custom clients</h2><p>Save HTTPS client links to this browser’s launcher.</p></div></div>
@@ -126,7 +126,7 @@
       ];
       function makeLaunch(href, label, external, primary) {
         var a = document.createElement("a"); a.className = "button" + (primary ? " primary" : ""); a.href = href; a.textContent = label;
-        if (external) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+        if (external) a.target = "_self";
         return a;
       }
       function renderVersions() {
@@ -140,7 +140,7 @@
           var desc = document.createElement("p"); desc.textContent = item.description;
           var actions = document.createElement("div"); actions.className = "card-actions";
           actions.appendChild(makeLaunch(item.href,item.action,item.external,true));
-          if (item.external) { var note = document.createElement("span"); note.className = "button"; note.textContent = "Opens externally"; note.setAttribute("aria-hidden","true"); actions.appendChild(note); }
+          if (item.external) { var note = document.createElement("span"); note.className = "button"; note.textContent = "Full-page client"; note.setAttribute("aria-hidden","true"); actions.appendChild(note); }
           card.append(top,desc,actions); grid.appendChild(card);
         });
       }
