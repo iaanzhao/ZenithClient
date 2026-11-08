@@ -38,6 +38,10 @@
     .version { color:#fff;font-size:19px;font-weight:760;letter-spacing:-.02em; }
     .badge { padding:4px 8px;border:1px solid rgba(116,215,255,.2);border-radius:999px;background:rgba(61,133,198,.12);color:#9fe2ff;font:650 10px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap; }
     .badge.local { border-color:rgba(101,219,166,.2);background:rgba(54,155,115,.11);color:#8ce4bd; }
+    .card-badges { display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px; }
+    .badge.wisp-supported { border-color:rgba(101,219,166,.24);background:rgba(54,155,115,.12);color:#8ce4bd; }
+    .badge.wisp-settings { border-color:rgba(250,194,98,.24);background:rgba(170,119,39,.12);color:#f4ca7b; }
+    .badge.wisp-none { border-color:rgba(158,183,231,.14);background:rgba(158,183,231,.05);color:#97a5bb; }
     .card p { margin:13px 0 18px;color:#a9b6cc;font-size:13px;line-height:1.55; }
     .card-actions { margin-top:auto;display:flex;flex-wrap:wrap;gap:9px; }
     .button { display:inline-flex;min-height:38px;align-items:center;justify-content:center;gap:7px;padding:8px 12px;border:1px solid rgba(147,194,255,.19);border-radius:10px;background:rgba(255,255,255,.035);color:#dce6f7;text-decoration:none;font:650 12px/1.2 ui-sans-serif,system-ui,sans-serif;cursor:pointer; }
@@ -81,7 +85,7 @@
       <section id="versions" aria-labelledby="versions-title">
         <div class="section-head"><div><h2 id="versions-title">Available versions</h2><p>Pick a client version to launch.</p></div></div>
         <div class="grid" id="version-grid"></div>
-        <div class="notes"><strong>About builds:</strong> versions marked <em>Hosted here</em> run directly from Zenith as full-page clients. Eaglercraft 26.3 and legacy builds without a downloadable package still open at their provider. Zenith’s WispCraft integration is available in the Zenith 26.2 build.</div>
+        <div class="notes"><strong>Wisp labels:</strong> <em>Wisp supported</em> means the build has a matching Java protocol adapter. <em>Wisp settings</em> means the connector loads, but its legacy protocol cannot proxy Java servers. <em>No Wisp</em> means Wisp is not included in that provider-hosted build.</div>
       </section>
       <section id="custom" aria-labelledby="custom-title">
         <div class="section-head"><div><h2 id="custom-title">Custom clients</h2><p>Save HTTPS client links to this browser’s launcher.</p></div></div>
@@ -105,23 +109,23 @@
     (function () {
       var prefix = location.hostname === "iaanzhao.github.io" ? "/ZenithClient/" : "/";
       var versions = [
-        { name:"ZenithClient 26.2", version:"26.2", badge:"WispCraft", local:true, featured:true, description:"Zenith’s current build with WispCraft proxy settings, the modern theme, and the Zenith access gate.", href:prefix + "client-26.2.html?room=99", action:"Launch Zenith" },
-        { name:"Eaglercraft 26.3", version:"26.3", badge:"Latest", description:"Modern Eaglercraft build. Launches through the official Eaglercraft site.", href:"https://eaglercraft.com/play?version=26.3", action:"Launch 26.3", external:true },
-        { name:"Eaglercraft 26.2 u2", version:"26.2", badge:"Hosted here", local:true, description:"Standalone u2 browser build from the Eagler Versions provider.", href:prefix + "clients/26.2-u2/index.html", action:"Launch 26.2 u2" },
-        { name:"Eaglercraft 1.13.1", version:"1.13.1", badge:"Hosted here", local:true, description:"Community 1.13.1 port served from Zenith.", href:prefix + "clients/1.13.1/index.html", action:"Launch 1.13.1" },
-        { name:"Eaglercraft 1.12.2", version:"1.12.2", badge:"Hosted here", local:true, description:"Official WASM-GC offline build, served from Zenith.", href:prefix + "clients/1.12.2/index.html", action:"Launch 1.12.2" },
-        { name:"Eaglercraft 1.8.8", version:"1.8.8", badge:"Hosted here", local:true, description:"Official WASM-GC offline build, served from Zenith.", href:prefix + "clients/1.8.8/index.html", action:"Launch 1.8.8" },
-        { name:"Eaglercraft 1.20.6", version:"1.20.6", badge:"Hosted here", local:true, description:"Community beta build with modern blocks and swimming physics.", href:prefix + "clients/1.20.6/index.html", action:"Launch 1.20.6" },
-        { name:"Eaglercraft 1.14.4", version:"1.14.4", badge:"Hosted here", local:true, description:"Community browser build from the Village & Pillage era.", href:prefix + "clients/1.14.4/index.html", action:"Launch 1.14.4" },
-        { name:"Eaglercraft 1.7.10", version:"1.7.10", badge:"Hosted here", local:true, description:"Standalone community build for classic PvP and older server networks.", href:prefix + "clients/1.7.10/index.html", action:"Launch 1.7.10" },
-        { name:"Eaglercraft 1.5.2", version:"1.5.2", badge:"Hosted here", local:true, description:"Classic standalone Eaglercraft build, served from Zenith.", href:prefix + "clients/1.5.2/index.html", action:"Launch 1.5.2" },
-        { name:"Beta 1.7.3", version:"b1.7.3", badge:"Retro", description:"A classic beta-era browser build.", href:"https://eaglercraft.com/play?version=b1.7.3", action:"Launch Beta 1.7.3", external:true },
-        { name:"Beta 1.6.4", version:"b1.6.4", badge:"Hosted here", local:true, description:"Classic beta build with early world generation.", href:prefix + "clients/beta-1.6.4/index.html", action:"Launch Beta 1.6.4" },
-        { name:"Beta 1.5_01", version:"b1.5_01", badge:"Hosted here", local:true, description:"Early beta build with weather and powered rails.", href:prefix + "clients/beta-1.5.01/index.html", action:"Launch Beta 1.5_01" },
-        { name:"Beta 1.3", version:"b1.3", badge:"Retro", description:"An early beta-era browser build.", href:"https://eaglercraft.com/play?version=b1.3", action:"Launch Beta 1.3", external:true },
-        { name:"Alpha 1.0.6_03", version:"a1.0.6_03", badge:"Hosted here", local:true, description:"An early alpha browser build served from Zenith.", href:prefix + "clients/alpha-1.0.6-03/index.html", action:"Launch Alpha 1.0.6_03" },
-        { name:"Alpha 1.2.6", version:"a1.2.6", badge:"Retro", description:"A classic alpha-era browser build.", href:"https://eaglercraft.com/play?version=a1.2.6", action:"Launch Alpha 1.2.6", external:true },
-        { name:"Indev", version:"Indev", badge:"Retro", description:"An early Minecraft development-era build.", href:"https://eaglercraft.com/play?version=indev", action:"Launch Indev", external:true }
+        { name:"ZenithClient 26.2", version:"26.2", badge:"WispCraft", wisp:"Wisp supported", local:true, featured:true, description:"Zenith’s current build with WispCraft proxy settings, the modern theme, and the Zenith access gate.", href:prefix + "client-26.2.html?room=99", action:"Launch Zenith" },
+        { name:"Eaglercraft 26.3", version:"26.3", badge:"Latest", wisp:"No Wisp", description:"Modern Eaglercraft build. Launches through the official Eaglercraft site.", href:"https://eaglercraft.com/play?version=26.3", action:"Launch 26.3", external:true },
+        { name:"Eaglercraft 26.2 u2", version:"26.2", badge:"Hosted here", wisp:"Wisp supported", local:true, description:"Standalone u2 browser build from the Eagler Versions provider.", href:prefix + "clients/26.2-u2/index.html", action:"Launch 26.2 u2" },
+        { name:"Eaglercraft 1.13.1", version:"1.13.1", badge:"Hosted here", wisp:"Wisp supported", local:true, description:"Community 1.13.1 port served from Zenith.", href:prefix + "clients/1.13.1/index.html", action:"Launch 1.13.1" },
+        { name:"Eaglercraft 1.12.2", version:"1.12.2", badge:"Hosted here", wisp:"Wisp supported", local:true, description:"Official WASM-GC offline build, served from Zenith.", href:prefix + "clients/1.12.2/index.html", action:"Launch 1.12.2" },
+        { name:"Eaglercraft 1.8.8", version:"1.8.8", badge:"Hosted here", wisp:"Wisp supported", local:true, description:"Official WASM-GC offline build, served from Zenith.", href:prefix + "clients/1.8.8/index.html", action:"Launch 1.8.8" },
+        { name:"Eaglercraft 1.20.6", version:"1.20.6", badge:"Hosted here", wisp:"Wisp supported", local:true, description:"Community beta build with modern blocks and swimming physics.", href:prefix + "clients/1.20.6/index.html", action:"Launch 1.20.6" },
+        { name:"Eaglercraft 1.14.4", version:"1.14.4", badge:"Hosted here", wisp:"Wisp supported", local:true, description:"Community browser build from the Village & Pillage era.", href:prefix + "clients/1.14.4/index.html", action:"Launch 1.14.4" },
+        { name:"Eaglercraft 1.7.10", version:"1.7.10", badge:"Hosted here", wisp:"Wisp supported", local:true, description:"Standalone community build for classic PvP and older server networks.", href:prefix + "clients/1.7.10/index.html", action:"Launch 1.7.10" },
+        { name:"Eaglercraft 1.5.2", version:"1.5.2", badge:"Hosted here", wisp:"Wisp settings", local:true, description:"Classic standalone build with Wisp settings loaded; its legacy protocol cannot proxy Java servers.", href:prefix + "clients/1.5.2/index.html", action:"Launch 1.5.2" },
+        { name:"Beta 1.7.3", version:"b1.7.3", badge:"Retro", wisp:"No Wisp", description:"A classic beta-era browser build.", href:"https://eaglercraft.com/play?version=b1.7.3", action:"Launch Beta 1.7.3", external:true },
+        { name:"Beta 1.6.4", version:"b1.6.4", badge:"Hosted here", wisp:"Wisp settings", local:true, description:"Classic beta build with Wisp settings loaded; its legacy protocol cannot proxy Java servers.", href:prefix + "clients/beta-1.6.4/index.html", action:"Launch Beta 1.6.4" },
+        { name:"Beta 1.5_01", version:"b1.5_01", badge:"Hosted here", wisp:"Wisp settings", local:true, description:"Early beta build with Wisp settings loaded; its legacy protocol cannot proxy Java servers.", href:prefix + "clients/beta-1.5.01/index.html", action:"Launch Beta 1.5_01" },
+        { name:"Beta 1.3", version:"b1.3", badge:"Retro", wisp:"No Wisp", description:"An early beta-era browser build.", href:"https://eaglercraft.com/play?version=b1.3", action:"Launch Beta 1.3", external:true },
+        { name:"Alpha 1.0.6_03", version:"a1.0.6_03", badge:"Hosted here", wisp:"Wisp settings", local:true, description:"Early alpha build with Wisp settings loaded; its legacy protocol cannot proxy Java servers.", href:prefix + "clients/alpha-1.0.6-03/index.html", action:"Launch Alpha 1.0.6_03" },
+        { name:"Alpha 1.2.6", version:"a1.2.6", badge:"Retro", wisp:"No Wisp", description:"A classic alpha-era browser build.", href:"https://eaglercraft.com/play?version=a1.2.6", action:"Launch Alpha 1.2.6", external:true },
+        { name:"Indev", version:"Indev", badge:"Retro", wisp:"No Wisp", description:"An early Minecraft development-era build.", href:"https://eaglercraft.com/play?version=indev", action:"Launch Indev", external:true }
       ];
       function makeLaunch(href, label, external, primary) {
         var a = document.createElement("a"); a.className = "button" + (primary ? " primary" : ""); a.href = href; a.textContent = label;
@@ -135,7 +139,9 @@
           var top = document.createElement("div"); top.className = "card-top";
           var name = document.createElement("div"); name.className = "version"; name.textContent = item.name;
           var badge = document.createElement("span"); badge.className = "badge" + (item.local ? " local" : ""); badge.textContent = item.badge;
-          top.append(name,badge);
+          var wisp = document.createElement("span"); wisp.className = "badge " + (item.wisp === "Wisp supported" ? "wisp-supported" : item.wisp === "Wisp settings" ? "wisp-settings" : "wisp-none"); wisp.textContent = item.wisp;
+          var badges = document.createElement("div"); badges.className = "card-badges"; badges.append(badge,wisp);
+          top.append(name,badges);
           var desc = document.createElement("p"); desc.textContent = item.description;
           var actions = document.createElement("div"); actions.className = "card-actions";
           actions.appendChild(makeLaunch(item.href,item.action,item.external,true));
