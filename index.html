@@ -81,7 +81,7 @@
       <section id="versions" aria-labelledby="versions-title">
         <div class="section-head"><div><h2 id="versions-title">Available versions</h2><p>Pick a client version to launch.</p></div></div>
         <div class="grid" id="version-grid"></div>
-        <div class="notes"><strong>About external builds:</strong> they open as full-page clients from their providers, without an iframe. Those clients remain hosted on their own sites; Zenith’s WispCraft integration is available in the Zenith 26.2 build.</div>
+        <div class="notes"><strong>About builds:</strong> versions marked <em>Hosted here</em> run directly from Zenith as full-page clients. Eaglercraft 26.3 and legacy builds without a downloadable package still open at their provider. Zenith’s WispCraft integration is available in the Zenith 26.2 build.</div>
       </section>
       <section id="custom" aria-labelledby="custom-title">
         <div class="section-head"><div><h2 id="custom-title">Custom clients</h2><p>Save HTTPS client links to this browser’s launcher.</p></div></div>
@@ -107,20 +107,19 @@
       var versions = [
         { name:"ZenithClient 26.2", version:"26.2", badge:"WispCraft", local:true, featured:true, description:"Zenith’s current build with WispCraft proxy settings, the modern theme, and the Zenith access gate.", href:prefix + "client-26.2.html?room=99", action:"Launch Zenith" },
         { name:"Eaglercraft 26.3", version:"26.3", badge:"Latest", description:"Modern Eaglercraft build. Launches through the official Eaglercraft site.", href:"https://eaglercraft.com/play?version=26.3", action:"Launch 26.3", external:true },
-        { name:"Eaglercraft 26.2", version:"26.2", badge:"Official", description:"Official Eaglercraft 26.2 browser client.", href:"https://eaglercraft.com/play?version=26.2", action:"Launch 26.2", external:true },
-        { name:"Eaglercraft 1.13.1", version:"1.13.1", badge:"Community", description:"Community port. Opens its published client in a new tab.", href:"https://userarham.github.io/1.13.1-Eaglercraft-UNFORKED/", action:"Launch 1.13.1", external:true },
-        { name:"Eaglercraft 1.12.2", version:"1.12.2", badge:"Official", description:"Eaglercraft 1.12.2 browser client from the official launcher.", href:"https://eaglercraft.com/play?version=1.12.2", action:"Launch 1.12.2", external:true },
-        { name:"Eaglercraft 1.8.8", version:"1.8.8", badge:"Classic", description:"The widely supported Eaglercraft 1.8.8 client.", href:"https://eaglercraft.com/play?version=1.8.8", action:"Launch 1.8.8", external:true },
-        { name:"Eaglercraft 1.20.6", version:"1.20.6", badge:"Community beta", description:"A community beta build with modern blocks and swimming physics.", href:"https://eymenwsmc.github.io/playopspt.github.io/120/index.html?v=20260824-5430efd6", action:"Launch 1.20.6", external:true },
-        { name:"Eaglercraft 1.14.4", version:"1.14.4", badge:"Community", description:"A community browser build based on the Village & Pillage era.", href:"https://eymenwsmc.github.io/playopspt.github.io/114/index.html", action:"Launch 1.14.4", external:true },
-        { name:"Eaglercraft 1.5.2", version:"1.5.2", badge:"Classic", description:"Classic Eaglercraft client, available from the official launcher.", href:"https://eaglercraft.com/play?version=1.5.2", action:"Launch 1.5.2", external:true },
-        { name:"Eaglercraft 1.7.10", version:"1.7.10", badge:"Community", description:"A community build for classic PvP and older server networks.", href:"https://eymenwsmc.github.io/playopspt.github.io/r1710/", action:"Launch 1.7.10", external:true },
-        { name:"Eaglercraft 1.4.7", version:"1.4.7", badge:"Community", description:"A classic community build with early survival-era mechanics.", href:"https://eymenwsmc.github.io/playopspt.github.io/r147/", action:"Launch 1.4.7", external:true },
+        { name:"Eaglercraft 26.2 u2", version:"26.2", badge:"Hosted here", local:true, description:"Standalone u2 browser build from the Eagler Versions provider.", href:prefix + "clients/26.2-u2/index.html", action:"Launch 26.2 u2" },
+        { name:"Eaglercraft 1.13.1", version:"1.13.1", badge:"Hosted here", local:true, description:"Community 1.13.1 port served from Zenith.", href:prefix + "clients/1.13.1/index.html", action:"Launch 1.13.1" },
+        { name:"Eaglercraft 1.12.2", version:"1.12.2", badge:"Hosted here", local:true, description:"Official WASM-GC offline build, served from Zenith.", href:prefix + "clients/1.12.2/index.html", action:"Launch 1.12.2" },
+        { name:"Eaglercraft 1.8.8", version:"1.8.8", badge:"Hosted here", local:true, description:"Official WASM-GC offline build, served from Zenith.", href:prefix + "clients/1.8.8/index.html", action:"Launch 1.8.8" },
+        { name:"Eaglercraft 1.20.6", version:"1.20.6", badge:"Hosted here", local:true, description:"Community beta build with modern blocks and swimming physics.", href:prefix + "clients/1.20.6/index.html", action:"Launch 1.20.6" },
+        { name:"Eaglercraft 1.14.4", version:"1.14.4", badge:"Hosted here", local:true, description:"Community browser build from the Village & Pillage era.", href:prefix + "clients/1.14.4/index.html", action:"Launch 1.14.4" },
+        { name:"Eaglercraft 1.7.10", version:"1.7.10", badge:"Hosted here", local:true, description:"Standalone community build for classic PvP and older server networks.", href:prefix + "clients/1.7.10/index.html", action:"Launch 1.7.10" },
+        { name:"Eaglercraft 1.5.2", version:"1.5.2", badge:"Hosted here", local:true, description:"Classic standalone Eaglercraft build, served from Zenith.", href:prefix + "clients/1.5.2/index.html", action:"Launch 1.5.2" },
         { name:"Beta 1.7.3", version:"b1.7.3", badge:"Retro", description:"A classic beta-era browser build.", href:"https://eaglercraft.com/play?version=b1.7.3", action:"Launch Beta 1.7.3", external:true },
-        { name:"Beta 1.6.4", version:"b1.6.4", badge:"Retro", description:"A classic 2011 beta build with early world generation.", href:"https://eymenwsmc.github.io/playopspt.github.io/beta6/", action:"Launch Beta 1.6.4", external:true },
-        { name:"Beta 1.5_01", version:"b1.5_01", badge:"Retro", description:"An early beta build with weather and powered rails.", href:"https://eymenwsmc.github.io/playopspt.github.io/beta/", action:"Launch Beta 1.5_01", external:true },
+        { name:"Beta 1.6.4", version:"b1.6.4", badge:"Hosted here", local:true, description:"Classic beta build with early world generation.", href:prefix + "clients/beta-1.6.4/index.html", action:"Launch Beta 1.6.4" },
+        { name:"Beta 1.5_01", version:"b1.5_01", badge:"Hosted here", local:true, description:"Early beta build with weather and powered rails.", href:prefix + "clients/beta-1.5.01/index.html", action:"Launch Beta 1.5_01" },
         { name:"Beta 1.3", version:"b1.3", badge:"Retro", description:"An early beta-era browser build.", href:"https://eaglercraft.com/play?version=b1.3", action:"Launch Beta 1.3", external:true },
-        { name:"Alpha 1.0.6_03", version:"a1.0.6_03", badge:"Retro", description:"An early alpha build from the classic browser client library.", href:"https://eymenwsmc.github.io/playopspt.github.io/alpha/", action:"Launch Alpha 1.0.6_03", external:true },
+        { name:"Alpha 1.0.6_03", version:"a1.0.6_03", badge:"Hosted here", local:true, description:"An early alpha browser build served from Zenith.", href:prefix + "clients/alpha-1.0.6-03/index.html", action:"Launch Alpha 1.0.6_03" },
         { name:"Alpha 1.2.6", version:"a1.2.6", badge:"Retro", description:"A classic alpha-era browser build.", href:"https://eaglercraft.com/play?version=a1.2.6", action:"Launch Alpha 1.2.6", external:true },
         { name:"Indev", version:"Indev", badge:"Retro", description:"An early Minecraft development-era build.", href:"https://eaglercraft.com/play?version=indev", action:"Launch Indev", external:true }
       ];

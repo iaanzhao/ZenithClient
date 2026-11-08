@@ -25,6 +25,7 @@ jobs:
           mkdir public
           cp index.html client-26.2.html 404.html *.js *.wasm *.epk favicon.png .nojekyll public/
           cp -R lang public/lang
+          cp -R clients public/clients
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public

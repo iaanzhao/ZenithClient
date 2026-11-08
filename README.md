@@ -4,10 +4,10 @@ ZenithClient's version hub and Eaglercraft 26.2 build with WispCraft proxy suppo
 
 Hosted at: https://iaanzhao.github.io/ZenithClient/
 
-The home page lists the built-in Zenith 26.2 client, links to other published
-Eaglercraft versions, and lets users save their own HTTPS client links in their
-browser. External clients open on their provider's site and do not include the
-Zenith WispCraft integration. Custom links are stored locally in the browser.
+The home page lists the built-in Zenith 26.2 client, self-hosted provider builds
+in `clients/`, and the official 26.3 launch page. Custom HTTPS client links are
+stored locally in the browser. Only the Zenith 26.2 build includes the Zenith
+WispCraft integration. See `clients/SOURCES.md` for build sources and credits.
 
 The bundled Zenith game is `client-26.2.html`; it uses the adjacent assets and
 WispCraft bundle from the site root.
