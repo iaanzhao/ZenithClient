@@ -88,7 +88,9 @@
         <div class="notes"><strong>Wisp labels:</strong> <em>Wisp supported</em> means the build has a matching Java protocol adapter. <em>Wisp settings</em> means the connector loads, but its legacy protocol cannot proxy Java servers. <em>No Wisp</em> means Wisp is not included in that provider-hosted build.</div>
       </section>
       <section id="custom" aria-labelledby="custom-title">
-        <div class="section-head"><div><h2 id="custom-title">Custom clients</h2><p>Save HTTPS client links to this browser’s launcher.</p></div></div>
+        <div class="section-head"><div><h2 id="custom-title">Custom clients</h2><p>Browse community clients or save your own client links.</p></div></div>
+        <div class="grid" id="community-client-grid" aria-label="Community client links"></div>
+        <div class="section-head"><div><h2 id="saved-title">Your client links</h2><p>Saved links stay in this browser.</p></div></div>
         <div class="custom-layout">
           <div class="custom-list" id="custom-list" aria-live="polite"></div>
           <form class="add-panel" id="custom-form">
@@ -127,10 +129,33 @@
         { name:"Alpha 1.2.6", version:"a1.2.6", badge:"Retro", wisp:"No Wisp", description:"A classic alpha-era browser build.", href:"https://eaglercraft.com/play?version=a1.2.6", action:"Launch Alpha 1.2.6", external:true },
         { name:"Indev", version:"Indev", badge:"Retro", wisp:"No Wisp", description:"An early Minecraft development-era build.", href:"https://eaglercraft.com/play?version=indev", action:"Launch Indev", external:true }
       ];
+      var communityClients = [
+        { name:"Resent Client 5.1", version:"Minecraft 1.8.8", badge:"Official site", description:"Current Resent release with PvP and performance mods. Its official site includes its own Wisp proxy integration.", href:"https://resentclient.com/", action:"Open Resent" },
+        { name:"Resent Client 4.0", version:"Archived build", badge:"Community archive", description:"Older Resent build hosted by eaglercraft.dev. This is an archived third-party copy, not the current Resent release.", href:"https://eaglercraft.dev/downloads/eaglercraft.dev_Resent_Client_4.0_JS.html", action:"Open archived build" },
+        { name:"Kone Client", version:"Minecraft 1.5.2", badge:"Project archive", description:"Kone’s original client site no longer resolves. The archive repository includes its source and offline web build files.", href:"https://github.com/eaglerarchive/Kone-1.5.2", action:"View Kone archive" },
+        { name:"Astra Client 2", version:"1.8.8 · 1.12.2", badge:"Official site", description:"Astra Client 2 v2.1 builds and release information from the project site.", href:"https://astraclient.com/", action:"Open Astra" },
+        { name:"ShadowNet Client", version:"Community launcher", badge:"Official launcher", description:"Open Shadow Network’s launcher for its browser client builds and related clients.", href:"https://shadownetwork.shop/launcher/", action:"Open ShadowNet" }
+      ];
       function makeLaunch(href, label, external, primary) {
         var a = document.createElement("a"); a.className = "button" + (primary ? " primary" : ""); a.href = href; a.textContent = label;
         if (external) a.target = "_self";
         return a;
+      }
+      function renderCommunityClients() {
+        var grid = document.getElementById("community-client-grid");
+        communityClients.forEach(function (item) {
+          var card = document.createElement("article"); card.className = "card custom-card";
+          var top = document.createElement("div"); top.className = "card-top";
+          var name = document.createElement("div"); name.className = "version"; name.textContent = item.name;
+          var badges = document.createElement("div"); badges.className = "card-badges";
+          var version = document.createElement("span"); version.className = "badge"; version.textContent = item.version;
+          var badge = document.createElement("span"); badge.className = "badge local"; badge.textContent = item.badge;
+          badges.append(version,badge); top.append(name,badges);
+          var desc = document.createElement("p"); desc.textContent = item.description;
+          var actions = document.createElement("div"); actions.className = "card-actions";
+          var link = document.createElement("a"); link.className = "button primary"; link.href = item.href; link.target = "_blank"; link.rel = "noopener noreferrer"; link.textContent = item.action;
+          actions.appendChild(link); card.append(top,desc,actions); grid.appendChild(card);
+        });
       }
       function renderVersions() {
         var grid = document.getElementById("version-grid");
@@ -177,7 +202,7 @@
         try { localStorage.setItem(storageKey,JSON.stringify(clients)); this.reset(); renderCustom(); message.style.color = "#8ce4bd"; message.textContent = "Client link saved on this browser."; }
         catch (e) { message.style.color = "#ffaaaa"; message.textContent = "Browser storage is unavailable; the client link could not be saved."; }
       });
-      renderVersions(); renderCustom();
+      renderVersions(); renderCommunityClients(); renderCustom();
     })();
   </script>
 </body>
